@@ -1,0 +1,78 @@
+# Gekko (PowerPC 750) - Nintendo GameCube CPU
+# 32-bit opcodes, MSB0 bit ordering
+
+import crate::cpu::Gpr
+#import crate::cpu::Fpr
+
+decoder Gekko {
+    width = 32
+    bit_order = msb0
+}
+
+type gpr = u8 as Gpr
+type simm16 = i32 { sign_extend(16) }
+type simm24 = i32 { sign_extend(24), shift_left(2) }
+type disp = i32 { sign_extend(16) }
+type uimm = u16
+type branch_disp = i32 { sign_extend(14), shift_left(2) }
+
+# Maps for simplified mnemonics
+map bc_cond_true(cond_bit) {
+    0 => "lt"
+    1 => "gt"
+    2 => "eq"
+    3 => "so"
+}
+
+map bc_cond_false(cond_bit) {
+    0 => "ge"
+    1 => "le"
+    2 => "ne"
+    3 => "ns"
+}
+
+map bc_cr_prefix(cr_num) {
+    0 => ""
+    _ => "cr{cr_num}, "
+}
+
+map bc_hint(y) {
+    0 => ""
+    _ => "+"
+}
+
+cmpli   [0:5]=001010 crfd:u3[6:8] [9]=0 l:bool[10] ra:gpr[11:15] uimm:uimm[16:31]
+        | l == 0, crfd == 0 : "cmplwi {ra}, {uimm}"
+        | l == 0 : "cmplwi {crfd}, {ra}, {uimm}"
+        | "cmpli {crfd}, {l}, {ra}, {uimm}"
+
+addi    [0:5]=001110 rd:gpr[6:10] ra:gpr[11:15] simm:simm16[16:31]
+        | ra == 0 : "li {rd}, {simm}"
+        | "addi {rd}, {ra}, {simm}"
+
+addis   [0:5]=001111 rd:gpr[6:10] ra:gpr[11:15] simm:simm16[16:31]
+        | ra == 0 : "lis {rd}, {simm}"
+        | "addis {rd}, {ra}, {simm}"
+
+bcx     [0:5]=010000 bo:u5[6:10] bi:u5[11:15] bd:branch_disp[16:29] aa:bool[30] lk:bool[31]
+        | bo >= 12, bo <= 15 : "b{bc_cond_true(bi % 4)}{bc_hint(bo % 2)}{lk ? l}{aa ? a} {bc_cr_prefix(bi / 4)}{bd:#04x}"
+        | bo >= 4 , bo <= 7  : "b{bc_cond_false(bi % 4)}{bc_hint(bo % 2)}{lk ? l}{aa ? a} {bc_cr_prefix(bi / 4)}{bd:#04x}"
+        | bo >= 16, bo <= 17 : "bdnz{bc_hint(bo % 2)}{lk ? l}{aa ? a} {bd:#04x}"
+        | bo >= 18, bo <= 19 : "bdz{bc_hint(bo % 2)}{lk ? l}{aa ? a} {bd:#04x}"
+        | "bc{lk ? l}{aa ? a} {bo}, {bi}, {bd:#04x}"
+
+bx      [0:5]=010010 li:simm24[6:29] aa:bool[30] lk:bool[31]
+        | "b{lk ? l}{aa ? a} {li:#04x}"
+
+addx    [0:5]=011111 rd:gpr[6:10] ra:gpr[11:15] rb:gpr[16:20] oe:bool[21] [22:30]=100001010 rc:bool[31]
+        | "add{oe ? o}{rc ? .} {rd}, {ra}, {rb}"
+
+lwz     [0:5]=100000 rd:gpr[6:10] ra:gpr[11:15] d:disp[16:31]
+        | "lwz {rd}, {d}({ra})"
+
+stw     [0:5]=100100 rd:gpr[6:10] ra:gpr[11:15] d:disp[16:31]
+        | "stw {rd}, {d}({ra})"
+
+stwu    [0:5]=100101 rd:gpr[6:10] ra:gpr[11:15] d:disp[16:31]
+        | "stwu {rd}, {d}({ra})"
+        
