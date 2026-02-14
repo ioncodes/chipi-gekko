@@ -335,18 +335,19 @@ bcctrx      [0:5]=010011 bo:u5[6:10] bi:u5[11:15] [16:20]=00000 [21:30]=10000100
 # Primary opcodes 20-21, 23: Rotate M-form
 # ============================================================
 rlwimix     [0:5]=010100 rs:gpr[6:10] ra:gpr[11:15] sh:u5[16:20] mb:u5[21:25] me:u5[26:30] rc:bool[31]
-            | sh == 32 - mb : "inslwi{rc ? .} {ra}, {rs}, {me - mb + 1}, {mb}"
-            | sh == 31 - me : "insrwi{rc ? .} {ra}, {rs}, {me - mb + 1}, {mb}"
+            | sh == 32 - mb, me >= mb : "inslwi{rc ? .} {ra}, {rs}, {me - mb + 1}, {mb}"
+            | sh == 31 - me, me >= mb : "insrwi{rc ? .} {ra}, {rs}, {me - mb + 1}, {mb}"
             | "rlwimi{rc ? .} {ra}, {rs}, {sh}, {mb}, {me}"
 
 rlwinmx     [0:5]=010101 rs:gpr[6:10] ra:gpr[11:15] sh:u5[16:20] mb:u5[21:25] me:u5[26:30] rc:bool[31]
             | mb == 0 , me == 31      : "rotlwi{rc ? .} {ra}, {rs}, {sh}"
             | mb == 0 , me == 31 - sh : "slwi{rc ? .} {ra}, {rs}, {sh}"
             | me == 31, sh == 32 - mb : "srwi{rc ? .} {ra}, {rs}, {mb}"
-            | mb == 0                 : "extlwi{rc ? .} {ra}, {rs}, {me + 1}, {sh}"
-            | me == 31                : "extrwi{rc ? .} {ra}, {rs}, {sh + mb - 32}, {32 - mb}"
             | sh == 0 , mb == 0       : "clrrwi{rc ? .} {ra}, {rs}, {31 - me}"
-            | sh == 0,  me == 31      : "clrlwi{rc ? .} {ra}, {rs}, {mb}"
+            | sh == 0 , me == 31      : "clrlwi{rc ? .} {ra}, {rs}, {mb}"
+            | mb == 0                 : "extlwi{rc ? .} {ra}, {rs}, {me + 1}, {sh}"
+            | me == 31 - sh           : "clrlslwi{rc ? .} {ra}, {rs}, {mb + sh}, {sh}"
+            | me == 31, sh + mb >= 32 : "extrwi{rc ? .} {ra}, {rs}, {32 - mb}, {sh + mb - 32}"
             | "rlwinm{rc ? .} {ra}, {rs}, {sh}, {mb}, {me}"
 
 rlwnmx      [0:5]=010111 rs:gpr[6:10] ra:gpr[11:15] rb:gpr[16:20] mb:u5[21:25] me:u5[26:30] rc:bool[31]
