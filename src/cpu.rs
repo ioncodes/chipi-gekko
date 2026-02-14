@@ -16,6 +16,12 @@ impl From<u8> for Gpr {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Fpr(pub u8);
 
+impl std::fmt::Display for Fpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "f{}", self.0)
+    }
+}
+
 impl From<u8> for Fpr {
     fn from(val: u8) -> Self {
         Fpr(val)
