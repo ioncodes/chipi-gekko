@@ -241,17 +241,21 @@ cmpi        [0:5]=001011 crfd:u3[6:8] [9]=0 l:bool[10] ra:gpr[11:15] simm:simm16
             | "cmpi {crfd}, {l}, {ra}, {simm}"
 
 addic       [0:5]=001100 rd:gpr[6:10] ra:gpr[11:15] simm:simm16[16:31]
+            | simm < 0 : "subic {rd}, {ra}, {-simm}"
             | "addic {rd}, {ra}, {simm}"
 
 addic_dot   [0:5]=001101 rd:gpr[6:10] ra:gpr[11:15] simm:simm16[16:31]
+            | simm < 0 : "subic. {rd}, {ra}, {-simm}"
             | "addic. {rd}, {ra}, {simm}"
 
 addi        [0:5]=001110 rd:gpr[6:10] ra:gpr[11:15] simm:simm16[16:31]
-            | ra == 0 : "li {rd}, {simm}"
+            | ra == 0  : "li {rd}, {simm}"
+            | simm < 0 : "subi {rd}, {ra}, {-simm}"
             | "addi {rd}, {ra}, {simm}"
 
 addis       [0:5]=001111 rd:gpr[6:10] ra:gpr[11:15] simm:simm16[16:31]
             | ra == 0 : "lis {rd}, {simm}"
+            | simm < 0 : "subis {rd}, {ra}, {-simm}"
             | "addis {rd}, {ra}, {simm}"
 
 # ============================================================
@@ -284,7 +288,7 @@ mcrf        [0:5]=010011 crfd:u3[6:8] [9:10]=00 crfs:u3[11:13] [14:20]=0000000 [
 bclrx       [0:5]=010011 bo:u5[6:10] bi:u5[11:15] [16:20]=00000 [21:30]=0000010000 lk:bool[31]
             | bo == 20, bi == 0  : "blr{lk ? l}"
             | bo >= 12, bo <= 15 : "b{bc_cond_true(bi % 4)}lr{bc_hint(bo % 2)}{lk ? l}{bclr_cr(bi / 4)}"
-            | bo >= 4, bo <= 7   : "b{bc_cond_false(bi % 4)}lr{bc_hint(bo % 2)}{lk ? l}{bclr_cr(bi / 4)}"
+            | bo >= 4 , bo <= 7  : "b{bc_cond_false(bi % 4)}lr{bc_hint(bo % 2)}{lk ? l}{bclr_cr(bi / 4)}"
             | bo >= 16, bo <= 17 : "bdnzlr{bc_hint(bo % 2)}{lk ? l}"
             | bo >= 18, bo <= 19 : "bdzlr{bc_hint(bo % 2)}{lk ? l}"
             | "bclr{lk ? l} {bo}, {bi}"
@@ -324,19 +328,25 @@ cror        [0:5]=010011 crbd:u5[6:10] crba:u5[11:15] crbb:u5[16:20] [21:30]=011
 bcctrx      [0:5]=010011 bo:u5[6:10] bi:u5[11:15] [16:20]=00000 [21:30]=1000010000 lk:bool[31]
             | bo == 20, bi == 0  : "bctr{lk ? l}"
             | bo >= 12, bo <= 15 : "b{bc_cond_true(bi % 4)}ctr{bc_hint(bo % 2)}{lk ? l}{bclr_cr(bi / 4)}"
-            | bo >= 4, bo <= 7   : "b{bc_cond_false(bi % 4)}ctr{bc_hint(bo % 2)}{lk ? l}{bclr_cr(bi / 4)}"
+            | bo >= 4 , bo <= 7  : "b{bc_cond_false(bi % 4)}ctr{bc_hint(bo % 2)}{lk ? l}{bclr_cr(bi / 4)}"
             | "bcctr{lk ? l} {bo}, {bi}"
 
 # ============================================================
 # Primary opcodes 20-21, 23: Rotate M-form
 # ============================================================
 rlwimix     [0:5]=010100 rs:gpr[6:10] ra:gpr[11:15] sh:u5[16:20] mb:u5[21:25] me:u5[26:30] rc:bool[31]
+            | sh == 32 - mb : "inslwi{rc ? .} {ra}, {rs}, {me - mb + 1}, {mb}"
+            | sh == 31 - me : "insrwi{rc ? .} {ra}, {rs}, {me - mb + 1}, {mb}"
             | "rlwimi{rc ? .} {ra}, {rs}, {sh}, {mb}, {me}"
 
 rlwinmx     [0:5]=010101 rs:gpr[6:10] ra:gpr[11:15] sh:u5[16:20] mb:u5[21:25] me:u5[26:30] rc:bool[31]
-            | mb == 0, me == 31 : "rotlwi{rc ? .} {ra}, {rs}, {sh}"
-            | sh == 0, mb == 0 : "clrrwi{rc ? .} {ra}, {rs}, {31 - me}"
-            | sh == 0, me == 31 : "clrlwi{rc ? .} {ra}, {rs}, {mb}"
+            | mb == 0 , me == 31      : "rotlwi{rc ? .} {ra}, {rs}, {sh}"
+            | mb == 0 , me == 31 - sh : "slwi{rc ? .} {ra}, {rs}, {sh}"
+            | me == 31, sh == 32 - mb : "srwi{rc ? .} {ra}, {rs}, {mb}"
+            | mb == 0                 : "extlwi{rc ? .} {ra}, {rs}, {me + 1}, {sh}"
+            | me == 31                : "extrwi{rc ? .} {ra}, {rs}, {sh + mb - 32}, {32 - mb}"
+            | sh == 0 , mb == 0       : "clrrwi{rc ? .} {ra}, {rs}, {31 - me}"
+            | sh == 0,  me == 31      : "clrlwi{rc ? .} {ra}, {rs}, {mb}"
             | "rlwinm{rc ? .} {ra}, {rs}, {sh}, {mb}, {me}"
 
 rlwnmx      [0:5]=010111 rs:gpr[6:10] ra:gpr[11:15] rb:gpr[16:20] mb:u5[21:25] me:u5[26:30] rc:bool[31]
