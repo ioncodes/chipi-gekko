@@ -4,13 +4,13 @@ version = 4
 
 [[package]]
 name = "chipi"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b8765177b257195ef282c25ed5d650a93cb244d19b03d776a49343d51f792b6"
+checksum = "295f11ed6a3856db92c677ac0e1d575bf6b6b6492011a364137accfa3d0b3532"
 
 [[package]]
 name = "chipi-gekko"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "chipi",
 ]
