@@ -4,4 +4,4 @@ version = "0.2.0"
 edition = "2024"
 
 [build-dependencies]
-chipi = "0.2.0"
+chipi-build = "0.7.0"

@@ -1,0 +1,13 @@
+[[gen]]
+input = "dsl/gekko.chipi"
+lang = "rust"
+output = "$OUT_DIR/gekko.rs"
+
+[gen.type_map]
+gpr = "crate::cpu::Gpr"
+fpr = "crate::cpu::Fpr"
+
+[[gen]]
+input = "dsl/dsp.chipi"
+lang = "rust"
+output = "$OUT_DIR/dsp.rs"

@@ -44,8 +44,8 @@ fn disassemble_dol(data: &[u8], start: usize) {
         let word = u32::from_be_bytes(data[offset..offset + 4].try_into().unwrap());
         let addr = offset as u32;
 
-        match GekkoInstruction::decode(word) {
-            Some(instr) => println!("{:08X}  {:08X}  {}", addr, word, instr),
+        match GekkoInstruction::decode(&data[offset..]) {
+            Some((instr, _bytes)) => println!("{:08X}  {:08X}  {}", addr, word, instr),
             None => println!("{:08X}  {:08X}  .long     {:#010x}", addr, word, word),
         }
 
@@ -59,23 +59,19 @@ fn disassemble_dsp(data: &[u8], start: usize) {
         let word = u16::from_be_bytes(data[offset..offset + 2].try_into().unwrap());
         let addr = (offset / 2) as u32;
 
-        // Prepare buffer for multi-unit instructions
-        let mut units = Vec::new();
-        let mut temp_offset = offset;
-        while temp_offset + 2 <= data.len() && units.len() < 3 {
-            units.push(u16::from_be_bytes(data[temp_offset..temp_offset + 2].try_into().unwrap()));
-            temp_offset += 2;
-        }
-
-        match DspInstruction::decode(&units) {
-            Some((instr, consumed)) => {
-                let hex_str: Vec<String> = units[..consumed].iter()
-                    .map(|w| format!("{:04x}", w))
+        match DspInstruction::decode(&data[offset..]) {
+            Some((instr, bytes)) => {
+                let units = bytes / 2;
+                let hex_str: Vec<String> = (0..units)
+                    .map(|i| {
+                        let o = offset + i * 2;
+                        format!("{:04x}", u16::from_be_bytes(data[o..o + 2].try_into().unwrap()))
+                    })
                     .collect();
 
                 let hex_part = hex_str.join(" ");
                 println!("{:04x} {:10} {}", addr, hex_part, instr);
-                offset += consumed * 2;
+                offset += bytes;
             }
             None => {
                 println!("{:04x} {:10} .word     {:#06x}", addr, format!("{:04x}", word), word);

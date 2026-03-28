@@ -1,16 +1,13 @@
 # Gekko (PowerPC 750) - Nintendo GameCube CPU
 # 32-bit opcodes, MSB0 bit ordering
 
-import crate::cpu::Gpr
-import crate::cpu::Fpr
-
 decoder Gekko {
     width = 32
     bit_order = msb0
 }
 
-type gpr = u8 as Gpr
-type fpr = u8 as Fpr
+type gpr = u8
+type fpr = u8
 type uimm = u16 { display(hex) }
 type simm12 = i32 { sign_extend(12), display(signed_hex) }
 type simm16 = i32 { sign_extend(16), display(signed_hex) }
