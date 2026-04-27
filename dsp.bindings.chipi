@@ -1,0 +1,7 @@
+include "dsl/dsp.chipi"
+
+target rust {
+    decoder Dsp {
+        output "$OUT_DIR/dsp.rs"
+    }
+}

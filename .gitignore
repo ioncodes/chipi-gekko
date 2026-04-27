@@ -1,3 +1,4 @@
 /target
 *.dol*
 *.bin*
+!*.bindings.chipi
